@@ -32,6 +32,9 @@ async function uploadFile() {
         return;
     }
 
+    // Show loading state
+    document.querySelector('.file-input-label').textContent = 'Uploading...';
+    
     const formData = new FormData();
     formData.append('file', file);
 
@@ -41,20 +44,31 @@ async function uploadFile() {
             body: formData
         });
 
-        const result = await response.json();
-        console.log('Upload response:', result); // Debug log
-        
-        if (response.ok) {
-            uploadedData = result.data;
-            console.log('Uploaded data:', uploadedData); // Debug log
-            populateSubjectDropdown(result.subjects);
-            alert('File uploaded successfully!');
-        } else {
-            alert(result.error || 'Error uploading file');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const result = await response.json();
+        console.log('Upload response:', result);
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        uploadedData = result.data;
+        console.log('Uploaded data:', uploadedData);
+        
+        if (!uploadedData || !Array.isArray(uploadedData)) {
+            throw new Error('Invalid data format received from server');
+        }
+
+        populateSubjectDropdown(result.subjects);
+        document.querySelector('.file-input-label').textContent = file.name;
+        alert('File uploaded successfully!');
     } catch (error) {
         console.error('Upload error:', error);
-        alert('Error uploading file');
+        document.querySelector('.file-input-label').textContent = 'Click to select Excel file';
+        alert('Error uploading file: ' + error.message);
     }
 }
 
@@ -80,15 +94,15 @@ async function fetchStats() {
         return;
     }
 
-    if (!uploadedData) {
-        alert('Please upload a file first');
+    if (!uploadedData || !Array.isArray(uploadedData)) {
+        alert('Please upload a valid Excel file first');
         return;
     }
 
     try {
         document.querySelector('.subject-title').textContent = `Loading analysis for ${subject}...`;
-
-        console.log('Sending data for stats:', { // Debug log
+        
+        console.log('Sending data for stats:', {
             subject_name: subject,
             data: uploadedData
         });
@@ -98,17 +112,22 @@ async function fetchStats() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 subject_name: subject,
                 data: uploadedData
             })
         });
 
-        const data = await response.json();
-        console.log('Stats response:', data); // Debug log
-        
         if (!response.ok) {
-            throw new Error(data.error || 'Error fetching statistics');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error fetching statistics');
+        }
+
+        const data = await response.json();
+        console.log('Stats response:', data);
+        
+        if (!data || data.error) {
+            throw new Error(data.error || 'Invalid data received');
         }
 
         displayStats(data);
