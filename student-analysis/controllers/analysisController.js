@@ -42,13 +42,11 @@ class AnalysisController {
                 }
             });
 
-            // Store data in session
-            req.session.analysisData = data;
-
             // Get unique subjects
             const subjects = [...new Set(data.map(row => row['Sub Name']))];
             
-            res.json({ subjects });
+            // Return both subjects and data
+            res.json({ subjects, data });
         } catch (error) {
             console.error('Upload error:', error);
             res.status(500).json({ error: 'Error processing file' });
@@ -57,11 +55,10 @@ class AnalysisController {
 
     getStats(req, res) {
         try {
-            const { subject_name } = req.body;
-            const data = req.session.analysisData;
-
-            if (!data) {
-                return res.status(400).json({ error: 'No data available. Please upload a file first.' });
+            const { subject_name, data } = req.body;
+            
+            if (!data || !Array.isArray(data)) {
+                return res.status(400).json({ error: 'No data provided. Please upload a file first.' });
             }
 
             const subjectData = data.filter(row => row['Sub Name'] === subject_name);
@@ -95,7 +92,7 @@ class AnalysisController {
                 return acc;
             }, {});
 
-            // Sort grades in descending order (O, A+, A, B+, B, C, F)
+            // Sort grades in descending order
             const sortedGrades = Object.entries(gradeCount).sort((a, b) => {
                 const gradeOrder = { 'O': 7, 'A+': 6, 'A': 5, 'B+': 4, 'B': 3, 'C': 2, 'F': 1 };
                 return gradeOrder[b[0]] - gradeOrder[a[0]];
@@ -143,8 +140,8 @@ class AnalysisController {
 
     getAllSubjectsGraph(req, res) {
         try {
-            const data = req.session.analysisData;
-            if (!data) {
+            const { data } = req.body;
+            if (!data || !Array.isArray(data)) {
                 return res.status(400).json({ error: 'No data available' });
             }
 
@@ -209,8 +206,8 @@ class AnalysisController {
 
     getFailCounts(req, res) {
         try {
-            const data = req.session.analysisData;
-            if (!data) {
+            const { data } = req.body;
+            if (!data || !Array.isArray(data)) {
                 return res.status(400).json({ error: 'No data available' });
             }
 
@@ -265,8 +262,8 @@ class AnalysisController {
 
     getOverallPassFail(req, res) {
         try {
-            const data = req.session.analysisData;
-            if (!data) {
+            const { data } = req.body;
+            if (!data || !Array.isArray(data)) {
                 return res.status(400).json({ error: 'No data available' });
             }
 
@@ -295,9 +292,9 @@ class AnalysisController {
 
     async generatePDF(req, res) {
         try {
-            const { subjectData, overallData } = req.body;
+            const { data, subjectData, overallData } = req.body;
             
-            if (!subjectData || !overallData) {
+            if (!data || !subjectData || !overallData) {
                 return res.status(400).json({ error: 'Missing required data' });
             }
 
@@ -393,44 +390,6 @@ class AnalysisController {
                        .text(`  Fail: ${subject.failPercentage.toFixed(2)}%`)
                        .moveDown(0.5);
                 });
-            }
-
-            // Add detailed failure analysis
-            if (overallData.failures) {
-                doc.addPage()
-                   .fontSize(16)
-                   .text('Detailed Failure Analysis', { underline: true })
-                   .moveDown();
-
-                // Lab failures
-                if (overallData.failures.labs) {
-                    doc.fontSize(14)
-                       .text('Laboratory Course Failures:', { underline: true })
-                       .moveDown();
-
-                    Object.entries(overallData.failures.labs).forEach(([count, students]) => {
-                        doc.fontSize(12)
-                           .text(`${count} Lab Failures: ${students.length} students`)
-                           .fontSize(10)
-                           .text(`Roll Numbers: ${students.join(', ')}`)
-                           .moveDown();
-                    });
-                }
-
-                // Subject failures
-                if (overallData.failures.subjects) {
-                    doc.fontSize(14)
-                       .text('Theory Course Failures:', { underline: true })
-                       .moveDown();
-
-                    Object.entries(overallData.failures.subjects).forEach(([count, students]) => {
-                        doc.fontSize(12)
-                           .text(`${count} Subject Failures: ${students.length} students`)
-                           .fontSize(10)
-                           .text(`Roll Numbers: ${students.join(', ')}`)
-                           .moveDown();
-                    });
-                }
             }
 
             // Add footer with timestamp
