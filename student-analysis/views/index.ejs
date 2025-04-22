@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Stats Analysis</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Stats Analysis</h1>
+
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="section">
+                <h3>Upload File</h3>
+                <div class="file-input-container">
+                    <input type="file" id="fileInput" accept=".xlsx,.xls">
+                    <span class="file-input-label">Click to select Excel file</span>
+                </div>
+                <button onclick="uploadFile()">Upload</button>
+            </div>
+
+            <div class="section">
+                <h3>Select Subject</h3>
+                <select id="subjectSelect"></select>
+                <button onclick="fetchStats()">Get Stats</button>
+            </div>
+
+            <div class="section">
+                <button onclick="fetchAllSubjectsGraph()">View All Subjects Performance</button>
+                <button onclick="fetchOverallPassFail()">Overall Stats</button>
+                <button onclick="fetchFailCounts()">Fail Analysis</button>
+                <button class="download-button" onclick="downloadPDF()">Download Report</button>
+            </div>
+        </div>
+
+        <!-- Analysis Content - This will be included in PDF -->
+        <div id="analysis-content" class="analysis-content">
+            <div class="subject-analysis">
+                <h2 class="subject-title"></h2>
+                <div class="stats-grid">
+                    <div class="chart-section">
+                        <div class="chart-container">
+                            <canvas id="passFailChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="highest-lowest"></div>
+                    <div class="extra-stats"></div>
+                    <div class="grade-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Subjects Performance Section -->
+        <div class="all-subjects-section">
+            <h2>Overall Performance Analysis</h2>
+            <div class="performance-grid">
+                <div class="performance-chart">
+                    <canvas id="allSubjectsChart"></canvas>
+                </div>
+                <div class="overall-stats"></div>
+                <div class="fail-stats"></div>
+            </div>
+        </div>
+
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Generating PDF...</p>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html> 
