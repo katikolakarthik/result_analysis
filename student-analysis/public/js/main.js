@@ -3,6 +3,7 @@ let currentChart = null;
 let allSubjectsChart = null;
 let currentSubjectData = null;
 let overallPerformanceData = null;
+let uploadedData = null; // Store the uploaded data
 
 // Handle file input change
 document.querySelector('.file-input-label').addEventListener('click', () => {
@@ -40,12 +41,13 @@ async function uploadFile() {
             body: formData
         });
 
-        const data = await response.json();
+        const result = await response.json();
         
         if (response.ok) {
-            populateSubjectDropdown(data.subjects);
+            uploadedData = result.data; // Store the uploaded data
+            populateSubjectDropdown(result.subjects);
         } else {
-            alert(data.error || 'Error uploading file');
+            alert(result.error || 'Error uploading file');
         }
     } catch (error) {
         console.error('Upload error:', error);
@@ -75,6 +77,11 @@ async function fetchStats() {
         return;
     }
 
+    if (!uploadedData) {
+        alert('Please upload a file first');
+        return;
+    }
+
     try {
         // Update the subject title before fetching
         document.querySelector('.subject-title').textContent = `Analysis for ${subject}`;
@@ -84,7 +91,10 @@ async function fetchStats() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ subject_name: subject })
+            body: JSON.stringify({ 
+                subject_name: subject,
+                data: uploadedData
+            })
         });
 
         const data = await response.json();
@@ -270,18 +280,30 @@ function updateChart(data, labels) {
 
 // Fetch all subjects graph
 async function fetchAllSubjectsGraph() {
+    if (!uploadedData) {
+        alert('Please upload a file first');
+        return;
+    }
+
     try {
-        const response = await fetch('/get-all-subjects-graph');
+        const response = await fetch('/get-all-subjects-graph', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ data: uploadedData })
+        });
+
         const data = await response.json();
         
-        if (response.ok) {
-            displayAllSubjectsGraph(data.stats);
-        } else {
-            alert(data.error || 'Error fetching graph data');
+        if (!response.ok) {
+            throw new Error(data.error || 'Error fetching graph data');
         }
+
+        displayAllSubjectsGraph(data);
     } catch (error) {
         console.error('Graph error:', error);
-        alert('Error fetching graph data');
+        alert('Error generating graph');
     }
 }
 
@@ -359,18 +381,30 @@ function displayAllSubjectsGraph(stats) {
 
 // Fetch fail counts
 async function fetchFailCounts() {
+    if (!uploadedData) {
+        alert('Please upload a file first');
+        return;
+    }
+
     try {
-        const response = await fetch('/get-fail-counts');
+        const response = await fetch('/get-fail-counts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ data: uploadedData })
+        });
+
         const data = await response.json();
         
-        if (response.ok) {
-            displayFailCounts(data);
-        } else {
-            alert(data.error || 'Error fetching fail counts');
+        if (!response.ok) {
+            throw new Error(data.error || 'Error fetching fail counts');
         }
+
+        displayFailCounts(data);
     } catch (error) {
         console.error('Fail counts error:', error);
-        alert('Error fetching fail counts');
+        alert('Error getting fail counts');
     }
 }
 
@@ -415,18 +449,30 @@ function displayFailCounts(data) {
 
 // Fetch overall pass/fail statistics
 async function fetchOverallPassFail() {
+    if (!uploadedData) {
+        alert('Please upload a file first');
+        return;
+    }
+
     try {
-        const response = await fetch('/get-overall-pass-fail');
+        const response = await fetch('/get-overall-pass-fail', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ data: uploadedData })
+        });
+
         const data = await response.json();
         
-        if (response.ok) {
-            displayOverallStats(data);
-        } else {
-            alert(data.error || 'Error fetching overall statistics');
+        if (!response.ok) {
+            throw new Error(data.error || 'Error fetching overall statistics');
         }
+
+        displayOverallStats(data);
     } catch (error) {
         console.error('Overall stats error:', error);
-        alert('Error fetching overall statistics');
+        alert('Error getting overall statistics');
     }
 }
 
@@ -465,84 +511,45 @@ function hideLoading() {
     }
 }
 
-// Download PDF function
+// Download PDF report
 async function downloadPDF() {
+    if (!uploadedData || !currentSubjectData) {
+        alert('Please analyze at least one subject first');
+        return;
+    }
+
     try {
         showLoading();
         
-        // First, ensure we have the required data
-        if (!currentSubjectData) {
-            alert('Please generate subject statistics first');
-            hideLoading();
-            return;
-        }
-
-        // Fetch overall data if not already available
-        if (!overallPerformanceData || !overallPerformanceData.subjects) {
-            try {
-                await fetchAllSubjectsGraph();
-                await fetchOverallPassFail();
-                await fetchFailCounts();
-            } catch (error) {
-                console.error('Error fetching required data:', error);
-                alert('Error preparing PDF data. Please try again.');
-                hideLoading();
-                return;
-            }
-        }
-
-        // Prepare the data for PDF generation
-        const pdfData = {
-            subjectData: {
-                subject_name: currentSubjectData.subject,
-                total_students: currentSubjectData.total_students,
-                average_mark: currentSubjectData.average_mark,
-                pass_percentage: currentSubjectData.pass_percentage,
-                fail_percentage: currentSubjectData.fail_percentage,
-                num_students_pass: currentSubjectData.num_students_pass,
-                num_students_fail: currentSubjectData.num_students_fail,
-                highest_students: currentSubjectData.highest_students || [],
-                lowest_students: currentSubjectData.lowest_students || [],
-                grade_distribution: currentSubjectData.grade_distribution
-            },
-            overallData: {
-                subjects: overallPerformanceData.subjects || [],
-                totalPass: overallPerformanceData.totalPass || 0,
-                totalFail: overallPerformanceData.totalFail || 0,
-                failures: overallPerformanceData.failures || {
-                    labs: {},
-                    subjects: {}
-                }
-            }
-        };
-
-        // Send request to server for PDF generation
         const response = await fetch('/generate-pdf', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(pdfData)
+            body: JSON.stringify({
+                data: uploadedData,
+                subjectData: currentSubjectData,
+                overallData: overallPerformanceData
+            })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to generate PDF');
+            throw new Error('Error generating PDF');
         }
 
-        // Create blob from response and trigger download
+        // Create a blob from the PDF stream
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'student-analysis-report.pdf';
+        a.download = 'analysis-report.pdf';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-
     } catch (error) {
-        console.error('Error downloading PDF:', error);
-        alert('Error generating PDF. Please try again.');
+        console.error('PDF error:', error);
+        alert('Error generating PDF report');
     } finally {
         hideLoading();
     }
