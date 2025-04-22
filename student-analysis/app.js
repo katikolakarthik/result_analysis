@@ -20,16 +20,24 @@ app.use('/', require('./routes/analysis'));
 
 // Error handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).render('error', { 
-        message: 'Something broke!',
-        error: process.env.NODE_ENV === 'development' ? err : {}
+    console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        body: req.body
+    });
+    
+    res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: err.message,
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 });
 
 // Port configuration
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || process.env.RENDER_PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
 });
 

@@ -61,13 +61,26 @@ class AnalysisController {
             const { subject_name, data } = req.body;
             
             if (!data || !Array.isArray(data)) {
-                return res.status(400).json({ error: 'No data provided. Please upload a file first.' });
+                return res.status(400).json({ 
+                    error: 'Invalid Data',
+                    message: 'No data provided or data is not in correct format. Please upload a file first.' 
+                });
+            }
+
+            if (!subject_name) {
+                return res.status(400).json({ 
+                    error: 'Invalid Subject',
+                    message: 'Subject name is required' 
+                });
             }
 
             const subjectData = data.filter(row => row['Sub Name'] === subject_name);
             
             if (subjectData.length === 0) {
-                return res.status(400).json({ error: 'No data found for the selected subject.' });
+                return res.status(404).json({ 
+                    error: 'No Data Found',
+                    message: 'No data found for the selected subject.' 
+                });
             }
 
             // Calculate basic statistics
@@ -79,7 +92,14 @@ class AnalysisController {
             const failPercentage = (failStudents / totalStudents) * 100;
 
             // Calculate marks statistics
-            const marks = subjectData.map(s => parseFloat(s['Total']));
+            const marks = subjectData.map(s => {
+                const total = parseFloat(s['Total']);
+                if (isNaN(total)) {
+                    throw new Error(`Invalid mark value found for student ${s['Roll No']}`);
+                }
+                return total;
+            });
+
             const averageMark = marks.reduce((a, b) => a + b, 0) / totalStudents;
             const highestMark = Math.max(...marks);
             const lowestMark = Math.min(...marks);
@@ -91,6 +111,9 @@ class AnalysisController {
             // Get grade distribution
             const gradeCount = subjectData.reduce((acc, curr) => {
                 const grade = curr['Grade'];
+                if (!grade) {
+                    throw new Error(`Missing grade for student ${curr['Roll No']}`);
+                }
                 acc[grade] = (acc[grade] || 0) + 1;
                 return acc;
             }, {});
@@ -136,8 +159,8 @@ class AnalysisController {
                 marks_distribution: marksRanges
             });
         } catch (error) {
-            console.error('Stats error:', error);
-            res.status(500).json({ error: 'Error calculating statistics' });
+            console.error('Stats calculation error:', error);
+            throw error; // Let the error middleware handle it
         }
     }
 
