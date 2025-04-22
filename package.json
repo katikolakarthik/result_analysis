@@ -1,0 +1,15 @@
+{
+  "name": "result-analysis",
+  "version": "1.0.0",
+  "description": "Student Result Analysis System",
+  "main": "student-analysis/app.js",
+  "scripts": {
+    "start": "cd student-analysis && npm install && node app.js",
+    "build": "cd student-analysis && npm install"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "author": "",
+  "license": "ISC"
+} 
