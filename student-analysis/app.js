@@ -1,52 +1,58 @@
+require('dotenv').config();
 const express = require('express');
-const path = require('path');
-const morgan = require('morgan');
 const session = require('express-session');
-const dotenv = require('dotenv');
-
-// Load environment variables
-dotenv.config();
-
-// Import routes
-const analysisRoutes = require('./routes/analysis');
+const MongoStore = require('connect-mongo');
+const morgan = require('morgan');
+const path = require('path');
+const connectDB = require('./config/database');
 
 const app = express();
 
+// Connect to MongoDB
+connectDB();
+
 // View engine setup
-app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 
 // Middleware
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Session configuration
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb+srv://your-mongodb-uri',
+        ttl: 24 * 60 * 60 // Session TTL (1 day)
+    }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
+    }
 }));
 
 // Routes
-app.use('/', analysisRoutes);
+app.use('/', require('./routes/analysis'));
 
 // Error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).render('error', { 
-        message: 'Something went wrong!',
+        message: 'Something broke!',
         error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
 
-// For Vercel serverless deployment
-if (process.env.NODE_ENV !== 'production') {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-}
+// Port configuration
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
 
 // Export for Vercel
 module.exports = app; 

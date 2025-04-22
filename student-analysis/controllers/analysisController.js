@@ -1,4 +1,4 @@
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const Chart = require('chart.js/auto');
 const ChartDataLabels = require('chartjs-plugin-datalabels');
@@ -16,16 +16,31 @@ class AnalysisController {
         res.render('index');
     }
 
-    uploadFile(req, res) {
+    async uploadFile(req, res) {
         try {
             if (!req.file) {
                 return res.status(400).json({ error: 'No file uploaded' });
             }
 
-            const workbook = xlsx.read(req.file.buffer);
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const data = xlsx.utils.sheet_to_json(worksheet);
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(req.file.buffer);
+            
+            const worksheet = workbook.worksheets[0];
+            const data = [];
+            
+            // Get headers
+            const headers = worksheet.getRow(1).values;
+            
+            // Get data
+            worksheet.eachRow((row, rowNumber) => {
+                if (rowNumber > 1) { // Skip header row
+                    const rowData = {};
+                    row.eachCell((cell, colNumber) => {
+                        rowData[headers[colNumber]] = cell.value;
+                    });
+                    data.push(rowData);
+                }
+            });
 
             // Store data in session
             req.session.analysisData = data;
