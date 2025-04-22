@@ -4,7 +4,7 @@
   "description": "Student Statistics Analysis Application",
   "main": "app.js",
   "engines": {
-    "node": ">=14.0.0"
+    "node": "18.x"
   },
   "scripts": {
     "start": "node app.js",
@@ -15,9 +15,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "canvas": "^3.1.0",
+    "skia-canvas": "^1.0.1",
     "chart.js": "^3.9.1",
-    "chartjs-node-canvas": "^4.1.6",
+    "chartjs-to-image": "^1.2.2",
     "chartjs-plugin-datalabels": "^2.2.0",
     "dotenv": "^16.0.0",
     "ejs": "^3.1.9",
