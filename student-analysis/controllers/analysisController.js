@@ -28,10 +28,13 @@ class AnalysisController {
             const worksheet = workbook.worksheets[0];
             const data = [];
             
-            // Get headers
-            const headers = worksheet.getRow(1).values;
+            // Get headers from the first row
+            const headers = [];
+            worksheet.getRow(1).eachCell((cell, colNumber) => {
+                headers[colNumber] = cell.value;
+            });
             
-            // Get data
+            // Get data from remaining rows
             worksheet.eachRow((row, rowNumber) => {
                 if (rowNumber > 1) { // Skip header row
                     const rowData = {};
@@ -75,7 +78,7 @@ class AnalysisController {
             const passPercentage = (passStudents / totalStudents) * 100;
             const failPercentage = (failStudents / totalStudents) * 100;
 
-            // Calculate average, highest, and lowest marks
+            // Calculate marks statistics
             const marks = subjectData.map(s => parseFloat(s['Total']));
             const averageMark = marks.reduce((a, b) => a + b, 0) / totalStudents;
             const highestMark = Math.max(...marks);
@@ -157,47 +160,7 @@ class AnalysisController {
                 };
             });
 
-            // Create chart configuration
-            const chartConfig = {
-                type: 'bar',
-                data: {
-                    labels: stats.map(s => s.subject),
-                    datasets: [{
-                        label: 'Pass %',
-                        data: stats.map(s => s.passPercentage),
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Subject-wise Pass Percentage'
-                        },
-                        legend: {
-                            position: 'bottom'
-                        },
-                        datalabels: {
-                            formatter: (value) => value.toFixed(1) + '%',
-                            color: '#000',
-                            anchor: 'end',
-                            align: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
-                        }
-                    }
-                }
-            };
-
-            // Generate chart URL using QuickChart.io
-            const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
-            
-            res.json({ chartUrl, stats });
+            res.json(stats);
         } catch (error) {
             console.error('Graph error:', error);
             res.status(500).json({ error: 'Error generating graph data' });
@@ -245,10 +208,10 @@ class AnalysisController {
             };
 
             Object.entries(failsByStudent).forEach(([rollNo, counts]) => {
-                if (counts.labs > 0) {
+                if (counts.labs > 0 && counts.labs <= 5) {
                     failCounts[`${counts.labs}_lab_fails`].push(rollNo);
                 }
-                if (counts.subjects > 0) {
+                if (counts.subjects > 0 && counts.subjects <= 5) {
                     failCounts[`${counts.subjects}_subject_fails`].push(rollNo);
                 }
             });

@@ -42,10 +42,13 @@ async function uploadFile() {
         });
 
         const result = await response.json();
+        console.log('Upload response:', result); // Debug log
         
         if (response.ok) {
-            uploadedData = result.data; // Store the uploaded data
+            uploadedData = result.data;
+            console.log('Uploaded data:', uploadedData); // Debug log
             populateSubjectDropdown(result.subjects);
+            alert('File uploaded successfully!');
         } else {
             alert(result.error || 'Error uploading file');
         }
@@ -83,8 +86,12 @@ async function fetchStats() {
     }
 
     try {
-        // Update the subject title before fetching
-        document.querySelector('.subject-title').textContent = `Analysis for ${subject}`;
+        document.querySelector('.subject-title').textContent = `Loading analysis for ${subject}...`;
+
+        console.log('Sending data for stats:', { // Debug log
+            subject_name: subject,
+            data: uploadedData
+        });
 
         const response = await fetch('/get-stats', {
             method: 'POST',
@@ -98,6 +105,7 @@ async function fetchStats() {
         });
 
         const data = await response.json();
+        console.log('Stats response:', data); // Debug log
         
         if (!response.ok) {
             throw new Error(data.error || 'Error fetching statistics');
@@ -118,7 +126,12 @@ async function fetchStats() {
 
 // Display statistics
 function displayStats(data) {
-    if (!data) return;
+    if (!data) {
+        console.error('No data received in displayStats');
+        return;
+    }
+
+    console.log('Displaying stats for:', data); // Debug log
 
     // Store the current subject data for PDF generation
     currentSubjectData = {
@@ -130,10 +143,10 @@ function displayStats(data) {
         num_students_pass: data.num_students_pass,
         num_students_fail: data.num_students_fail,
         highest_students: data.highest_students,
-        grade_distribution: data.grade_distribution
+        lowest_students: data.lowest_students,
+        grade_distribution: data.grade_distribution,
+        marks_distribution: data.marks_distribution
     };
-
-    console.log('Stored subject data:', currentSubjectData);
 
     // Update the subject title
     document.querySelector('.subject-title').textContent = `Analysis for ${data.subject_name}`;
