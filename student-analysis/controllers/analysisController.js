@@ -128,7 +128,7 @@ class AnalysisController {
         }
     }
 
-    async getAllSubjectsGraph(req, res) {
+    getAllSubjectsGraph(req, res) {
         try {
             const data = req.session.analysisData;
             if (!data) {
@@ -147,8 +147,8 @@ class AnalysisController {
                 };
             });
 
-            const chart = createChart();
-            chart.setConfig({
+            // Create chart configuration
+            const chartConfig = {
                 type: 'bar',
                 data: {
                     labels: stats.map(s => s.subject),
@@ -157,22 +157,13 @@ class AnalysisController {
                         data: stats.map(s => s.passPercentage),
                         backgroundColor: 'rgba(75, 192, 192, 0.6)'
                     }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        datalabels: {
-                            color: '#000',
-                            anchor: 'end',
-                            align: 'top',
-                            formatter: (value) => value.toFixed(1) + '%'
-                        }
-                    }
                 }
-            });
+            };
 
-            const imageBuffer = await chart.toBinary();
-            res.type('image/png').send(imageBuffer);
+            // Generate chart URL using QuickChart
+            const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+            
+            res.json({ chartUrl, stats });
         } catch (error) {
             console.error('Graph error:', error);
             res.status(500).json({ error: 'Error generating graph data' });
