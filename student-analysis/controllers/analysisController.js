@@ -1,7 +1,6 @@
 const xlsx = require('xlsx');
-const { Canvas } = require('skia-canvas');
-const Chart = require('chart.js/auto');
 const PDFDocument = require('pdfkit');
+const Chart = require('chart.js/auto');
 const ChartJsImage = require('chartjs-to-image');
 const ChartDataLabels = require('chartjs-plugin-datalabels');
 
@@ -157,6 +156,24 @@ class AnalysisController {
                         data: stats.map(s => s.passPercentage),
                         backgroundColor: 'rgba(75, 192, 192, 0.6)'
                     }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Subject-wise Pass Percentage'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
                 }
             };
 

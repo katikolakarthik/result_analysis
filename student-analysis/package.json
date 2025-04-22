@@ -8,9 +8,7 @@
   },
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js",
-    "vercel-build": "echo 'Build step complete'",
-    "build": "echo 'Build complete'"
+    "dev": "nodemon app.js"
   },
   "author": "",
   "license": "ISC",
