@@ -1,7 +1,6 @@
 const xlsx = require('xlsx');
 const PDFDocument = require('pdfkit');
 const Chart = require('chart.js/auto');
-const ChartJsImage = require('chartjs-to-image');
 const ChartDataLabels = require('chartjs-plugin-datalabels');
 
 // Register the plugin
@@ -166,6 +165,12 @@ class AnalysisController {
                         },
                         legend: {
                             position: 'bottom'
+                        },
+                        datalabels: {
+                            formatter: (value) => value.toFixed(1) + '%',
+                            color: '#000',
+                            anchor: 'end',
+                            align: 'top'
                         }
                     },
                     scales: {
@@ -177,7 +182,7 @@ class AnalysisController {
                 }
             };
 
-            // Generate chart URL using QuickChart
+            // Generate chart URL using QuickChart.io
             const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
             
             res.json({ chartUrl, stats });
