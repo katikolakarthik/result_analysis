@@ -1,21 +1,17 @@
 const xlsx = require('xlsx');
-const { createCanvas } = require('canvas');
+const { Canvas } = require('skia-canvas');
 const Chart = require('chart.js/auto');
 const PDFDocument = require('pdfkit');
-const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+const ChartJsImage = require('chartjs-to-image');
 const ChartDataLabels = require('chartjs-plugin-datalabels');
 
 // Register the plugin
 Chart.register(ChartDataLabels);
 
-// Add chart configuration
-const chartJSNodeCanvas = new ChartJSNodeCanvas({ 
-    width: 600, 
-    height: 300,
-    plugins: {
-        modern: ['chartjs-plugin-datalabels']
-    }
-});
+// Create a chart configuration function
+const createChart = (width = 600, height = 300) => {
+    return new ChartJsImage();
+};
 
 class AnalysisController {
     getHomePage(req, res) {
@@ -132,7 +128,7 @@ class AnalysisController {
         }
     }
 
-    getAllSubjectsGraph(req, res) {
+    async getAllSubjectsGraph(req, res) {
         try {
             const data = req.session.analysisData;
             if (!data) {
@@ -151,7 +147,32 @@ class AnalysisController {
                 };
             });
 
-            res.json({ stats });
+            const chart = createChart();
+            chart.setConfig({
+                type: 'bar',
+                data: {
+                    labels: stats.map(s => s.subject),
+                    datasets: [{
+                        label: 'Pass %',
+                        data: stats.map(s => s.passPercentage),
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        datalabels: {
+                            color: '#000',
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: (value) => value.toFixed(1) + '%'
+                        }
+                    }
+                }
+            });
+
+            const imageBuffer = await chart.toBinary();
+            res.type('image/png').send(imageBuffer);
         } catch (error) {
             console.error('Graph error:', error);
             res.status(500).json({ error: 'Error generating graph data' });
